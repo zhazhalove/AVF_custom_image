@@ -1,86 +1,81 @@
-# Run a custom Linux Image in Andorid Virtualization Framework (AVF) with USB attachment
+# Run a Custom Linux Image in Android Virtualization Framework (AVF) with USB Attachment
 
 ## Description
 
+This guide walks you through building and running a custom ARM64 Linux image using QEMU and deploying it on an Android device using the Android Virtualization Framework (AVF), with support for USB peripheral passthrough.
 
 ```
 Disclaimer:
 
-
+This guide is intended for educational and research purposes only. Proceeding with these steps involves unlocking and rooting your Android device, which can void your warranty, render your device inoperable, or expose it to security risks. The author assumes no liability for any damage or data loss that may occur. Use at your own risk.
 ```
-## Dependicies
 
-- Linux development system with QEMU arm64 packages installed.
-- Linux ISO image.  Debian is used for this guide.
-- AVF [u-boot]() image. 
-- [Rooted](https://xdaforums.com/t/guide-unlock-bootloader-root-google-pixel-tablet-with-magisk-adb-fastboot-command-lines.4615841/) Android version 14/15 device.  Google Pixel tablet is used for this guide.
+## Dependencies
+
+- Linux development system with QEMU ARM64 packages installed.
+- Linux ISO image (Debian is used in this guide).
+- [Rooted](https://xdaforums.com/t/guide-unlock-bootloader-root-google-pixel-tablet-with-magisk-adb-fastboot-command-lines.4615841/) Android 14/15 device (Google Pixel Tablet used).
 - [F-Droid](https://f-droid.org/en/) installed on the rooted Android device.
 - [Termux](https://f-droid.org/en/packages/com.termux/) installed on the rooted Android device.
-- USB Debugging enabled in developer options on the Android system.
-- [Android SDK Platform Tools](https://developer.android.com/tools/releases/platform-tools) installed on the development machine.
+- USB Debugging enabled in Developer Options.
+- [Android SDK Platform Tools](https://developer.android.com/tools/releases/platform-tools) on the development machine.
 - [Google USB Driver](https://developer.android.com/studio/run/win-usb)
 
+## Step-by-Step Process
 
-## Step by step process
-
-### Build custom ARM64 Linux image
+### Build Custom ARM64 Linux Image
 
 ```
 Note:
-
-In this guide, debian-12.10.0-arm64 (bookworm) iso image to build the rootfs for the Linux image.   This should work for any Linux arm64 distro.
+In this guide, the debian-12.10.0-arm64 (Bookworm) ISO image is used to build the rootfs. This should work for any ARM64 Linux distro.
 ```
 
 ```
 Note:
-
-In this guide, the Linux development environtment is Ubuntu 24.0.2.
-
+The Linux development environment is Ubuntu 24.04.2.
 ```
 
-1. Start up your Linux development enironment.
-
-2. Confirm the following packages are installed for QEMU arm64.
+1. Start your Linux development environment.
+2. Confirm required QEMU ARM64 packages are installed:
 
 ```
 sudo apt update
 sudo apt install qemu-system-arm qemu-utils edk2-aarch64
 ```
 
-3. Create a working directory in your home location
+3. Create a working directory:
 
 ```
-mkdir ~\avf_custom_image
-cd ~\avf_custom_image
+mkdir ~/avf_custom_image
+cd ~/avf_custom_image
 ```
 
-4. Download your Linux disto.
+4. Download your Linux distro ISO:
 
 ```
 wget https://cdimage.debian.org/debian-cd/current/arm64/iso-cd/debian-12.10.0-arm64-netinst.iso
 ```
 
-5. Since this QEMU VM instance will boot using an EFI firmware, copy the files to the working directory.
+5. Copy EFI firmware files:
 
 ```
 sudo cp -p /usr/share/AAVMF/AAVMF_CODE.fd ./AAVMF_CODE.fd
 sudo cp -p /usr/share/AAVMF/AAVMF_VARS.fd ./AAVMF_VARS.fd
 ```
 
-6. Make VARS file writable by your user (QEMU needs to write UEFI vars here).
+6. Make the VARS file writable:
 
 ```
 sudo chown $USER:$USER AAVMF_VARS.fd
-sudo chown $USER:$USER AAVMF_VARS.fd
 ```
 
-7. Build your rootfs file used by QEMU.
+7. Build the rootfs disk:
 
 ```
 qemu-img create -f raw ./debian-arm64.img 10G
 ```
 
-8. Boot the customer Linux AVF installation.
+8. Boot the custom Linux installer:
 
 ```
 qemu-system-aarch64 \
@@ -98,7 +93,7 @@ qemu-system-aarch64 \
   -boot order=d
 ```
 
-9. Since this Debian distro boot parition file can't be located on the cd-rom, it will have to be manually executed.
+9. Manually boot EFI loader from CD-ROM:
 
 ![EFI Boot](distro_efi_boot.png)
 
@@ -108,28 +103,22 @@ ls
 bootaa64.efi
 ```
 
-10. Select non-graphical installation since QEMU was not setup for a virtualized graphic card.
+10. Select non-graphical installation:
 
-![debian_installation_no_grapic](distro_menu_select_install.png)
+![debian_installation_no_graphic](distro_menu_select_install.png)
 
-11. Follow the installation instructions. You MUST create an ESP boot partion since this Linux image will boot from a UEFI firmware.
+11. Create an ESP (EFI System Partition):
 
-![EFI boot parition](distro_efi_boot_part.png)
-
+![EFI boot partition](distro_efi_boot_part.png)
 
 ```
 Note:
-
-If you need to end the QEMU VM, you can use the following hotkeys.
-
-Ctrl A then X
+To exit QEMU: Ctrl+A then X
 ```
 
-### Setup Android device environment
+### Set Up Android Device Environment
 
-Now the Linux custom image is built, it's time to custom the system.
-
-1. Boot the Linux custom image.
+1. Reboot into the custom Linux image:
 
 ```
 sudo qemu-system-aarch64 \
@@ -147,15 +136,13 @@ sudo qemu-system-aarch64 \
   -boot order=c
 ```
 
-2. Log into the system.
-
-3. Update source list to include non-free firmware.
+2. Log in and edit sources list:
 
 ```
 sudo nano /etc/apt/sources.list
 ```
 
-append to the etnries the following, contrib non-free non-free-firmware
+Add `contrib non-free non-free-firmware` to each line. Then:
 
 ```
 Example:
@@ -175,22 +162,15 @@ sudo apt update
 sudo apt install firmware-misc-nonfree
 ```
 
-4. Install socat.
+3. Install socat:
 
 ```
-sudo apt update
 sudo apt install socat
 ```
 
-5. Add VSOCK service.  This will provide the console access to the VM running on the Android system.
+4. Add VSOCK systemd service:
 
-```
-Note:
-
-Optional, change the service acccount used by the vsock service.
-```
-
-```
+```ini
 cat <<EOF | sudo tee /etc/systemd/system/vsock-shell.service
 [Unit]
 Description=Start socat vsock shell
@@ -208,18 +188,15 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable vsock-shell
 sudo systemctl start vsock-shell
-sudo systemctl status vsock-shell
 ```
 
-6. Install additional Wifi networking tools.
+5. Install networking tools:
 
 ```
-apt update
-apt install wireless-tools iw wpasupplicant
+sudo apt install wireless-tools iw wpasupplicant
 ```
 
-
-7. Since u-boot firmware searches for the fallback EFI path, this structure will need to be created on the Linux boot EFI partion.
+6. Add fallback EFI boot entries:
 
 ```
 # may need to add fallback EFI BOOT to ESP parition
@@ -230,104 +207,65 @@ apt install wireless-tools iw wpasupplicant
 # confirm this mount point exists
 df | grep /boot/efi
 
-mkdir BOOT
-
+sudo mkdir /boot/efi/EFI/BOOT
 sudo cp -p /boot/efi/EFI/debian/shimaa64.efi /boot/efi/EFI/BOOT/BOOTAA64.EFI
 sudo cp -p /boot/efi/EFI/debian/grubaa64.efi /boot/efi/EFI/BOOT/grubaa64.efi
 sudo cp -p /boot/efi/EFI/debian/mmaa64.efi /boot/efi/EFI/BOOT/mmaa64.efi
-
 ```
 
-8. Power off the custom Linux VM.
+7. Power off the VM:
 
 ```
 sudo poweroff
 ```
 
+### Transfer Files to Android
 
-### Transfer files to the Android System
-
-1. Connect the development computer, or another computer, to the Android system using the USB-C cable.
-
-2. Transfer the custom Linux image to the Android device.
+1. Connect the Android device via USB-C.
+2. Push the image:
 
 ```
-adb push 'path_to_custom_linux_image_file .img' '/data/local/tmp'
+adb push path_to_custom_linux_image.img /data/local/tmp
 ```
 
+### Run Custom Linux Image with AVF
 
-### Run custom Linux system using Android Virtualization Framework
-
-1. Start Termux application
-
-2. In Termux, install the openssh server.
+1. Launch Termux
+2. In Termux, install and configure OpenSSH:
 
 ```
 pkg update && pkg upgrade
-
 pkg install openssh
-```
-
-3. In Termux, set a password for the Termux user account
-
-```
 passwd
-```
-
-4. In Termux, start the SSH server
-
-```
-Note:
-
-Must keep the Termux application running.
-```
-
-```
 sshd
 ```
 
-5. In Termux, note the IP address
+3. In Termux, check IP and username:
 
 ```
 ifconfig
-```
-
-6. In Termux, note the Termux user name
-
-```
 whoami
 ```
 
-7. In Termux, install socat
+4. In Termux, install socat:
 
 ```
-pkg install openssh
+pkg install socat
 ```
 
-8. From your development computer, or another computer, SSH into the Android system.
+5. From the development computer, SSH into Android:
 
 ```
-ssh u0_a256@xxx.xxx.xxx.xxx -p 8022
-```
-
-9. Switch to root (on the Android system).
-
-```
+ssh u0_a256@<IP> -p 8022
 su
 ```
 
-10. Run your custom Linux image.
+6. Run Crosvm:
 
 ```
 Note:
 
-Update --block path to match custom Linux image
-```
-
-```
-Note:
-
-Only stdout will work for the crosvm (VMM).  No stdin.
+Update --block path to the correct Linux custom image file.
 ```
 
 ```
@@ -342,20 +280,17 @@ VM_SOCKET="/data/local/tmp/crosvm.sock"
     --params "console=ttyS0 root=/dev/vda rw" \
     --block path=/data/local/tmp/debian-bootable.img \
     --vsock cid=42 \
-    -s "${VM_SOCKET}"
+    -s "$VM_SOCKET"
 ```
 
-11. Wait until the VM reaches the login prompt.
-
-12. Establish a second ssh connect to the Android device.
-
+7. Wait for the VM login prompt.
+8. From the development computer, connect a second SSH session.
 ```
-ssh u0_a256@xxx.xxx.xxx.xxx -p 8022
+ssh u0_a256@<IP> -p 8022
+su
 ```
-
-13. Connect the USB Wifi adapter to the Android device.
-
-14. Confirm the usb bus and device numbers.
+9. Plug in USB WiFi adapter.
+10. Find device path:
 
 ```
 lsusb
@@ -363,57 +298,52 @@ lsusb
 
 ![lsusb output](lsusb_output.png)
 
-15. Pass the USB device to the AVF VM guest custom Linux system.
+11. Attach USB Wifi adapter to VM:
 
 ```
-VM_SOCKET="/data/local/tmp/crosvm.sock" # Make sure this matches Step 1
-BUS_NUM="001"
-DEV_NUM="002"
+
+VM_SOCKET="/data/local/tmp/crosvm.sock" # Make sure this matches the VM guest
+
+BUS_NUM="001" # Example
+
+DEV_NUM="002" # Example
 
 /apex/com.android.virt/bin/crosvm usb attach 00:00:00:00 /dev/bus/usb/${BUS_NUM}/${DEV_NUM} ${VM_SOCKET}
 ```
 
-16. Connect to the AVF VM guest custom Linux system console.
+12. Connect to the VM shell:
 
 ```
 Note:
 
-CID value MUST match the value used by the VM when executing crosvm command.
+The CID value MUST match the running VM guest value.
 
-[CID]:8000
+[CID value]:8000
 ```
 
 ```
 /data/data/com.termux/files/usr/bin/socat -,raw,echo=0 VSOCK-CONNECT:42:8000
 ```
 
-### Setup Wifi Adapter on guest VM
+### Configure Wi-Fi in Guest VM
 
 ```
 ip link
-
 ip link set <interface> up
-
 ip link show <interface>
-
 iwlist <interface> scan
-
 wpa_passphrase 'YourSSID' 'YourPassword' > /etc/wpa_supplicant.conf
-
 wpa_supplicant -B -i <interface> -c /etc/wpa_supplicant.conf
-
 dhclient <interface>
 ```
 
 ![ip_addr_output](ip_addr_output.png)
 
-
 ## Resources
 
-- [[Guide] Unlock Bootloader + Root Google Pixel Tablet with Magisk (adb & fastboot command lines)](https://xdaforums.com/t/guide-unlock-bootloader-root-google-pixel-tablet-with-magisk-adb-fastboot-command-lines.4615841/)
-
-- [Android Virtualization Framework (AVF) overview](https://source.android.com/docs/core/virtualization)
-
+- [[Guide] Unlock Bootloader + Root Google Pixel Tablet with Magisk](https://xdaforums.com/t/guide-unlock-bootloader-root-google-pixel-tablet-with-magisk-adb-fastboot-command-lines.4615841/)
+- [Android Virtualization Framework Overview](https://source.android.com/docs/core/virtualization)
 - [F-Droid](https://f-droid.org/en/)
 - [Termux](https://f-droid.org/en/packages/com.termux/)
-- [Book of crosvm](https://crosvm.dev/book/)
+- [Book of Crosvm](https://crosvm.dev/book/)
+
