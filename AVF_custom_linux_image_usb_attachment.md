@@ -339,6 +339,12 @@ dhclient <interface>
 
 ![ip_addr_output](ip_addr_output.png)
 
+## Testing
+
+- Only lite IP packet traffic works across the Wifi adapter (ping).
+- Moderate IP packet load causes crosvm emulated USB controller to collapse and takes down the guest VM network interface.
+- Further research is required.
+
 ## Resources
 
 - [[Guide] Unlock Bootloader + Root Google Pixel Tablet with Magisk](https://xdaforums.com/t/guide-unlock-bootloader-root-google-pixel-tablet-with-magisk-adb-fastboot-command-lines.4615841/)
